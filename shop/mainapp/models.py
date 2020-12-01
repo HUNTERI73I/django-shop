@@ -1,13 +1,23 @@
+import sys
 from PIL import Image
+from io import BytesIO
 
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
-
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.urls import reverse
 
 # Create your models here.
+
+
 User = get_user_model()
+
+
+def get_product_url(obj, viewname):
+    ct_model = obj.__class__.meta.model_name
+    return reverse(viewname, kwargs={'ct_model': ct_model, 'slug': obj.slug})
 
 
 class MinResolutionException(Exception):
@@ -99,7 +109,19 @@ class Product(models.Model):
             raise MinResolutionException('Разрешение изображения меньше минимального')
         if img.height > max_width or img.width > max_width:
             raise MaxResolutionException('Разрешение изображения больше максимального')
-        return image
+
+        image = self.image
+        img = Image.open(image)
+        new_img = img.convert('RGB')
+        new_img = new_img.resize((200, 200), Image.ANTIALIAS)
+        filestream = BytesIO()
+        file_ = new_img.save(filestream, 'JPEG', quality=90)
+        file_.seek(0)
+        name = '{}.{}'.format(*self.image.name.split('.'))
+        self.image = InMemoryUploadedFile(
+            filestream, 'ImageField', name, 'jpeg/image', sys.getsizeof(file_), None
+        )
+        super().save(*args, **kwargs)
 
 
 # Cart product
@@ -155,6 +177,9 @@ class Notebook(Product):
     def __str__(self):
         return f'{self.category.name} : {self.title}'
 
+    def get_absolute_url(self):
+        return get_product_url(self, 'product_detail')
+
 
 class Smartphone(Product):
 
@@ -172,3 +197,6 @@ class Smartphone(Product):
 
     def __str__(self):
         return f'{self.category.name} : {self.title}'
+
+    def get_absolute_url(self):
+        return get_product_url(self, 'product_detail')

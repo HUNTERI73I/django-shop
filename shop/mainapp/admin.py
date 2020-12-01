@@ -11,9 +11,10 @@ class NotebookAdminForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['image'].help_text = mark_safe(
-            '<span style="color:red; font-size:14px"> Загружайте изображение с разрешением от {}x{}, до {}x{} </span>'.format(
-            *Product.MIN_RESOLUTION, *Product.MAX_RESOLUTION
-        ))
+            '''
+            <span style="color:red; font-size:14px"> Загружайте изображение с разрешением от {}x{}, до {}x{} </span>
+            '''.format(*Product.MIN_RESOLUTION, *Product.MAX_RESOLUTION)
+        )
 
     def clean_image(self):
         image = self.cleaned_data['image']
